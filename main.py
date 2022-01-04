@@ -23,13 +23,15 @@ class ChaseAnalyser():
     BRight = 'B correct'
     CRight = 'C correct'
     Placeholder = 'Placeholder'
+    TopChoice = 'Top choice'
+    MidChoice = 'Middle choice'
+    LowChoice = 'Low choice'
 
     def download_videos(self):
         with open(sys.argv[1]) as f:
             lines = f.readlines()
         for url in lines:
             yt = YouTube(url)
-
             streams = yt.streams.filter(progressive=True)
             itag = streams[0].itag
             stream = yt.streams.get_by_itag(itag)
@@ -90,7 +92,7 @@ class ChaseAnalyser():
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    def colourChecker(self, pixel):
+    def colour_checker(self, pixel):
         if 51 <= pixel[0] <= 122 and 156 <= pixel[1] <= 233 and 0 <= pixel[2] <= 109:
             return ChaseAnalyser.GREEN
         elif 139 <= pixel[0] <= 149 and 50 <= pixel[1] <= 80 and 50 <= pixel[2] <= 83:
@@ -112,7 +114,7 @@ class ChaseAnalyser():
             if item[0] == 0 and item[1] == 0 and item[2] == 0:
                 continue
             else:
-                temp = self.colourChecker(item)
+                temp = self.colour_checker(item)
                 if temp == current or temp == ChaseAnalyser.BLACK:
                     continue
                 else:
@@ -187,26 +189,134 @@ class ChaseAnalyser():
 
         print(final)
 
-    # def get_frames(self, stream):
-    #     cap = cv2.VideoCapture(stream)
-    #     i = 0
-    #     while (cap.isOpened()):
-    #         ret, frame = cap.read()
-    #         if ret == False:
-    #             break
-    #         if i % 10 == 0:
-    #             cv2.imwrite('kang' + str(i) + '.jpg', frame)
-    #         i += 1
-    #
-    #     cap.release()
-    #     cv2.destroyAllWindows()
+    def get_frames(self, stream):
+        cap = cv2.VideoCapture(stream)
+        i = 0
+        while (cap.isOpened()):
+            ret, frame = cap.read()
+            if ret == False:
+                break
+            else:
+                if i % 25 == 0:
+                    self.frame_picker(frame)
+                    print(frame)
+            #     cv2.imwrite('kang' + str(i) + '.jpg', frame)
+            i += 1
+        cap.release()
+        cv2.destroyAllWindows()
+
+    def frame_picker(self, frame):
+        pass
+
 
 
 class NumberAnalyser:
 
+    # boilerplate code to pre-process image
+    # get grayscale image
+    def get_grayscale(self, image):
+        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # noise removal
+    def remove_noise(self, image):
+        return cv2.medianBlur(image, 5)
+
+    # thresholding
+    def thresholding(self, image):
+        gray = self.get_grayscale(image)
+        (T, threshInv) = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+        # visualize only the masked regions in the image
+        masked = cv2.bitwise_not(gray, gray, mask=threshInv)
+        ret, thresh1 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        ret, thresh2 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+        ret, thresh3 = cv2.threshold(gray, 127, 255, cv2.THRESH_TRUNC)
+        ret, thresh4 = cv2.threshold(gray, 127, 255, cv2.THRESH_TOZERO)
+        ret, thresh5 = cv2.threshold(gray, 127, 255, cv2.THRESH_TOZERO_INV)
+        return thresh4
+
+    # dilation
+    def dilate(self, image):
+        kernel = np.ones((5, 5), np.uint8)
+        return cv2.dilate(image, kernel, iterations=1)
+
+    # erosion
+    def erode(self, image):
+        kernel = np.ones((5, 5), np.uint8)
+        return cv2.erode(image, kernel, iterations=1)
+
+    # opening - erosion followed by dilation
+    def opening(self, image):
+        kernel = np.ones((5, 5), np.uint8)
+        return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
+    # canny edge detection
+    def canny(self, image):
+        return cv2.Canny(image, 100, 200)
+
+    # skew correction
+    def deskew(self, image):
+        coords = np.column_stack(np.where(image > 0))
+        angle = cv2.minAreaRect(coords)[-1]
+        if angle < -45:
+            angle = -(90 + angle)
+        else:
+            angle = -angle
+            (h, w) = image.shape[:2]
+            center = (w // 2, h // 2)
+            M = cv2.getRotationMatrix2D(center, angle, 1.0)
+            rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+            return rotated
+
+    # template matching
+    def match_template(self, image, template):
+        return cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+
     def numbers(self, img_path):
-        reader = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-        print(pt.image_to_string(reader))
+
+        reader = cv2.imread(img_path)
+        # reader = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_RGB2BGR)
+        pt.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/4.1.3/bin/tesseract'
+
+        gray = self.get_grayscale(reader)
+        thresh = self.thresholding(reader)
+        opening = self.opening(reader)
+        canny = self.canny(reader)
+        noiseless = self.remove_noise(reader)
+
+        # cv2.imshow('canny', canny)
+        # cv2.waitKey(0)
+        # cv2.imshow('gray', gray)
+        # cv2.waitKey(0)
+        cv2.imshow('threshold', thresh)
+        cv2.waitKey(0)
+        # cv2.imshow('opening', opening)
+        # cv2.waitKey(0)
+        # cv2.imshow('noise removal', noiseless)
+        # cv2.waitKey(0)
+        # cv2.imshow('og', reader)
+        # cv2.waitKey(0)
+
+        print('yes')
+        print(pt.image_to_string(thresh, config='--psm 11, -c tessedit_char_whitelist=$,0123456789'))
+
+    def get_choice(self, img):
+        x = ChaseAnalyser
+        check = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
+        mid1 = check[900][1120]
+        print(mid1)
+        mid2 = check[900][1775]
+        top1 = check[900][1775]
+        top2 = check[900][1775]
+        low1 = check[900][1120]
+        low2 = check[900][1775]
+        if x.colour_checker(self, mid1) == ChaseAnalyser.GREEN or x.colour_checker(self, mid2) == ChaseAnalyser.GREEN:
+            return (ChaseAnalyser.MidChoice)
+        elif x.colour_checker(self, top1) == ChaseAnalyser.GREEN or x.colour_checker(self, top2) == ChaseAnalyser.GREEN:
+            return ChaseAnalyser.TopChoice
+        elif x.colour_checker(self, low1) == ChaseAnalyser.GREEN or x.colour_checker(self, low2) == ChaseAnalyser.GREEN:
+            return ChaseAnalyser.LowChoice
+        else:
+            print('OH NO')
 
 
 class TestClass:
@@ -235,10 +345,16 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.masking()
+    # x.masking()
     # x.logic('masksc7.png')
-    x.inference(x.logic('masksc19.png'))
+    # x.inference(x.logic('masksc19.png'))
     # test = TestClass()
     # test.test('tests/test.txt')
     number_analyser = NumberAnalyser()
-    number_analyser.numbers('num1.png')
+    # number_analyser.numbers('num1.png')
+    number_analyser.get_choice('choice.png')
+    x.get_frames('../ep1.3gpp')
+
+# apply Otsu's automatic thresholding which automatically determines
+# the best threshold value
+
