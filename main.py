@@ -27,6 +27,7 @@ class ChaseAnalyser():
     MidChoice = 'Middle choice'
     LowChoice = 'Low choice'
 
+    # download videos
     def download_videos(self):
         with open(sys.argv[1]) as f:
             lines = f.readlines()
@@ -37,7 +38,51 @@ class ChaseAnalyser():
             stream = yt.streams.get_by_itag(itag)
             stream.download()
 
-    def masking(self):
+    # get frames from the videos
+    def get_frames(self, stream):
+        video = cv2.VideoCapture(stream)
+        i = 0
+        repeater = 0
+        while (video.isOpened()):
+            ret, frame = video.read()
+            if not ret:
+                break
+            else:
+                if i%20 == 0:
+                    frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    if self.colour_checker(frames[37][87]) == ChaseAnalyser.RED:
+                        if self.colour_checker(frames[74][110]) == ChaseAnalyser.DBLUE:
+                            if self.colour_checker(frames[62][110]) == ChaseAnalyser.LBLUE:
+                                if i - repeater < 2000:
+                                    continue
+                                else:
+                                    print('yes')
+                                    cv2.imwrite(F"frame{i}.png", frame)
+                                    repeater = i
+                i += 1
+        video.release()
+        cv2.destroyAllWindows()
+
+
+    def get_frame(self, filename, index):
+        counter = 0
+        video = cv2.VideoCapture(filename)
+        while video.isOpened():
+            rete, frame = video.read()
+            if rete:
+                if counter == index:
+                    return frame
+                counter += 1
+            else:
+                break
+        video.release()
+        return None
+
+    def frame_picker(self, frame):
+        to_process = cv2.imread(frame)
+        print(to_process)
+
+    def masking(self, img_path):
         # read in image
         path = 'tests/sc7.png'
         nm = 'sc7'
@@ -95,11 +140,17 @@ class ChaseAnalyser():
     def colour_checker(self, pixel):
         if 51 <= pixel[0] <= 122 and 156 <= pixel[1] <= 233 and 0 <= pixel[2] <= 109:
             return ChaseAnalyser.GREEN
-        elif 139 <= pixel[0] <= 149 and 50 <= pixel[1] <= 80 and 50 <= pixel[2] <= 83:
-            return ChaseAnalyser.RED
-        elif 42 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
+        # elif 139 <= pixel[0] <= 149 and 50 <= pixel[1] <= 80 and 50 <= pixel[2] <= 83:
+        #     return ChaseAnalyser.RED
+        elif 195 <= pixel[0] <= 214 and 0 <= pixel[1] <= 5 and 0 <= pixel[2] <= 12:
+             return ChaseAnalyser.RED
+        # elif 42 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
+        #     return ChaseAnalyser.DBLUE
+        elif 0 <= pixel[0] <= 10 and 0 <= pixel[1] <= 1 and 105 <= pixel[2] <= 190:
             return ChaseAnalyser.DBLUE
-        elif 128 <= pixel[0] <= 132 and 155 <= pixel[1] <= 208 and 200 <= pixel[2] <= 239:
+        # elif 128 <= pixel[0] <= 132 and 155 <= pixel[1] <= 208 and 200 <= pixel[2] <= 239:
+        #     return ChaseAnalyser.LBLUE
+        elif 4 <= pixel[0] <= 28 and 160 <= pixel[1] <= 175 and 218 <= pixel[2] <= 250:
             return ChaseAnalyser.LBLUE
         else:
             return ChaseAnalyser.BLACK
@@ -151,7 +202,8 @@ class ChaseAnalyser():
 
         elif len(temp) == 3:
             contestant_right = ChaseAnalyser.ContestantWrong
-            if temp[0] == ChaseAnalyser.DBLUE and temp[1] == ChaseAnalyser.DBLUE or temp[1] == ChaseAnalyser.DBLUE and temp[2] == ChaseAnalyser.DBLUE:
+            if temp[0] == ChaseAnalyser.DBLUE and temp[1] == ChaseAnalyser.DBLUE or temp[1] == ChaseAnalyser.DBLUE and \
+                    temp[2] == ChaseAnalyser.DBLUE:
                 contestant_right = ChaseAnalyser.ContestantRight
                 final.append(contestant_right)
             else:
@@ -188,26 +240,6 @@ class ChaseAnalyser():
             final.append(chaser_right)
 
         print(final)
-
-    def get_frames(self, stream):
-        cap = cv2.VideoCapture(stream)
-        i = 0
-        while (cap.isOpened()):
-            ret, frame = cap.read()
-            if ret == False:
-                break
-            else:
-                if i % 25 == 0:
-                    self.frame_picker(frame)
-                    print(frame)
-            #     cv2.imwrite('kang' + str(i) + '.jpg', frame)
-            i += 1
-        cap.release()
-        cv2.destroyAllWindows()
-
-    def frame_picker(self, frame):
-        pass
-
 
 
 class NumberAnalyser:
@@ -303,7 +335,7 @@ class NumberAnalyser:
         x = ChaseAnalyser
         check = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
         mid1 = check[900][1120]
-        print(mid1)
+        # print(mid1)
         mid2 = check[900][1775]
         top1 = check[900][1775]
         top2 = check[900][1775]
@@ -355,6 +387,4 @@ if __name__ == "__main__":
     number_analyser.get_choice('choice.png')
     x.get_frames('../ep1.3gpp')
 
-# apply Otsu's automatic thresholding which automatically determines
-# the best threshold value
 
