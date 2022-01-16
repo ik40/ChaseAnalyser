@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from itertools import islice
 from csv import reader
-import pytesseract as pt
+# import pytesseract as pt
 
 
 class ChaseAnalyser():
@@ -13,6 +13,7 @@ class ChaseAnalyser():
     DBLUE = 'darkblue'
     RED = 'red'
     BLACK = 'black'
+    QBLUE = 'question blue'
     ChaserRight = 'Chaser gets answer right'
     ChaserWrong = 'Chaser gets answer wrong'
     ContestantRight = 'Contestant gets answer right'
@@ -27,14 +28,14 @@ class ChaseAnalyser():
     MidChoice = 'Middle choice'
     LowChoice = 'Low choice'
 
-    # download videos
+    # download videos (high res)
     def download_videos(self):
         with open(sys.argv[1]) as f:
             lines = f.readlines()
         for url in lines:
             yt = YouTube(url)
             streams = yt.streams.filter(progressive=True)
-            itag = streams[0].itag
+            itag = streams[-1].itag
             stream = yt.streams.get_by_itag(itag)
             stream.download()
 
@@ -43,44 +44,40 @@ class ChaseAnalyser():
         video = cv2.VideoCapture(stream)
         i = 0
         repeater = 0
-        while (video.isOpened()):
+        while video.isOpened():
             ret, frame = video.read()
             if not ret:
                 break
             else:
-                if i%20 == 0:
-                    frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    if self.colour_checker(frames[37][87]) == ChaseAnalyser.RED:
-                        if self.colour_checker(frames[74][110]) == ChaseAnalyser.DBLUE:
-                            if self.colour_checker(frames[62][110]) == ChaseAnalyser.LBLUE:
-                                if i - repeater < 2000:
-                                    continue
-                                else:
-                                    print('yes')
-                                    cv2.imwrite(F"frame{i}.png", frame)
-                                    repeater = i
+                frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                if i % 20 == 0:
+                    # # cv2.imwrite(F"frame{i}.png", frame)
+                    # if self.colour_checker(frames[115][640]) == ChaseAnalyser.RED:
+                    #     if self.colour_checker(frames[380][830]) == ChaseAnalyser.DBLUE:
+                    #         if self.colour_checker(frames[300][830]) == ChaseAnalyser.LBLUE:
+                    #             if i - repeater < 2000:
+                    #                 continue
+                    #             else:
+                    #                 # cv2.imwrite(F"frame{i}.png", frame)
+                    #                 repeater = i
+                    if self.colour_checker(frames[585][305]) == ChaseAnalyser.QBLUE or self.colour_checker(frames[585][970]) == ChaseAnalyser.QBLUE:
+                        if i - repeater < 2000:
+                            continue
+                        else:
+                            cv2.imwrite(F"frame{i}.png", frame)
+                            repeater = i
+                            for x in range(425, 1005):
+                                if self.colour_checker(frames[650][x]) == ChaseAnalyser.RED:
+                                    cv2.imwrite(F"framered{i}.png", frame)
+
+
                 i += 1
         video.release()
         cv2.destroyAllWindows()
 
-
-    def get_frame(self, filename, index):
-        counter = 0
-        video = cv2.VideoCapture(filename)
-        while video.isOpened():
-            rete, frame = video.read()
-            if rete:
-                if counter == index:
-                    return frame
-                counter += 1
-            else:
-                break
-        video.release()
-        return None
-
-    def frame_picker(self, frame):
-        to_process = cv2.imread(frame)
-        print(to_process)
+    # def frame_picker(self, frame):
+    #     to_process = cv2.imread(frame)
+    #     print(to_process)
 
     def masking(self, img_path):
         # read in image
@@ -142,16 +139,18 @@ class ChaseAnalyser():
             return ChaseAnalyser.GREEN
         # elif 139 <= pixel[0] <= 149 and 50 <= pixel[1] <= 80 and 50 <= pixel[2] <= 83:
         #     return ChaseAnalyser.RED
-        elif 195 <= pixel[0] <= 214 and 0 <= pixel[1] <= 5 and 0 <= pixel[2] <= 12:
-             return ChaseAnalyser.RED
+        elif 145 <= pixel[0] <= 256 and 0 <= pixel[1] <= 80 and 0 <= pixel[2] <= 83:
+            return ChaseAnalyser.RED
         # elif 42 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
         #     return ChaseAnalyser.DBLUE
-        elif 0 <= pixel[0] <= 10 and 0 <= pixel[1] <= 1 and 105 <= pixel[2] <= 190:
+        elif 0 <= pixel[0] <= 10 and 0 <= pixel[1] <= 1 and 190 <= pixel[2] <= 256:
             return ChaseAnalyser.DBLUE
         # elif 128 <= pixel[0] <= 132 and 155 <= pixel[1] <= 208 and 200 <= pixel[2] <= 239:
         #     return ChaseAnalyser.LBLUE
-        elif 4 <= pixel[0] <= 28 and 160 <= pixel[1] <= 175 and 218 <= pixel[2] <= 250:
+        elif 4 <= pixel[0] <= 28 and 160 <= pixel[1] <= 211 and 218 <= pixel[2] <= 250:
             return ChaseAnalyser.LBLUE
+        elif 2 <= pixel[0] <= 5 and 10 <= pixel[1] <= 15 and 58 <= pixel[2] <= 65:
+            return ChaseAnalyser.QBLUE
         else:
             return ChaseAnalyser.BLACK
 
@@ -319,8 +318,8 @@ class NumberAnalyser:
         # cv2.waitKey(0)
         # cv2.imshow('gray', gray)
         # cv2.waitKey(0)
-        cv2.imshow('threshold', thresh)
-        cv2.waitKey(0)
+        # cv2.imshow('threshold', thresh)
+        # cv2.waitKey(0)
         # cv2.imshow('opening', opening)
         # cv2.waitKey(0)
         # cv2.imshow('noise removal', noiseless)
@@ -329,7 +328,7 @@ class NumberAnalyser:
         # cv2.waitKey(0)
 
         print('yes')
-        print(pt.image_to_string(thresh, config='--psm 11, -c tessedit_char_whitelist=$,0123456789'))
+        print(pt.image_to_string(reader, config='--psm 11, -c tessedit_char_whitelist=$,0123456789'))
 
     def get_choice(self, img):
         x = ChaseAnalyser
@@ -377,14 +376,12 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
+    x.get_frames('5e113.mp4')
     # x.masking()
     # x.logic('masksc7.png')
     # x.inference(x.logic('masksc19.png'))
     # test = TestClass()
     # test.test('tests/test.txt')
-    number_analyser = NumberAnalyser()
-    # number_analyser.numbers('num1.png')
-    number_analyser.get_choice('choice.png')
-    x.get_frames('../ep1.3gpp')
-
-
+    # number_analyser = NumberAnalyser()
+    # number_analyser.numbers('frame8560.png')
+    # number_analyser.get_choice('choice.png')
