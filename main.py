@@ -50,8 +50,10 @@ class ChaseAnalyser():
                 break
             else:
                 frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                if i % 20 == 0:
-                    # # cv2.imwrite(F"frame{i}.png", frame)
+                if i%20 == 0:
+                    # cv2.imwrite(F"chck{i}.png", frame)
+                    # print(self.colour_checker(frames[585][305]))
+                    # cv2.imwrite(F"frame{i}.png", frame)
                     # if self.colour_checker(frames[115][640]) == ChaseAnalyser.RED:
                     #     if self.colour_checker(frames[380][830]) == ChaseAnalyser.DBLUE:
                     #         if self.colour_checker(frames[300][830]) == ChaseAnalyser.LBLUE:
@@ -60,24 +62,31 @@ class ChaseAnalyser():
                     #             else:
                     #                 # cv2.imwrite(F"frame{i}.png", frame)
                     #                 repeater = i
-                    if self.colour_checker(frames[585][305]) == ChaseAnalyser.QBLUE or self.colour_checker(frames[585][970]) == ChaseAnalyser.QBLUE:
-                        if i - repeater < 2000:
+                    if x.strip(230, 1050, 534, frames):
+                        if i - repeater < 250:
                             continue
                         else:
-                            cv2.imwrite(F"frame{i}.png", frame)
+                            cv2.imwrite(F"questions{i}.png", frame)
                             repeater = i
-                            for x in range(425, 1005):
-                                if self.colour_checker(frames[650][x]) == ChaseAnalyser.RED:
-                                    cv2.imwrite(F"framered{i}.png", frame)
-
-
+                            # for x in range(425, 1005):
+                            #     if self.colour_checker(frames[650][x]) == ChaseAnalyser.RED:
+                            #         cv2.imwrite(F"framered{i}.png", frame)
                 i += 1
         video.release()
         cv2.destroyAllWindows()
 
-    # def frame_picker(self, frame):
-    #     to_process = cv2.imread(frame)
-    #     print(to_process)
+    def strip(self, pixelx1, pixelx2, pixely, frame):
+        count_blue = 1
+        count_other = 1
+        for x in range(pixelx1, pixelx2):
+            col = self.colour_checker(frame[pixely][x])
+            if col == ChaseAnalyser.QBLUE:
+                count_blue += 1
+            else:
+                count_other += 1
+        if count_blue / count_other > 0.3:
+            return True
+
 
     def masking(self, img_path):
         # read in image
@@ -376,7 +385,7 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('5e113.mp4')
+    x.get_frames('S5E116.mp4')
     # x.masking()
     # x.logic('masksc7.png')
     # x.inference(x.logic('masksc19.png'))
@@ -385,3 +394,4 @@ if __name__ == "__main__":
     # number_analyser = NumberAnalyser()
     # number_analyser.numbers('frame8560.png')
     # number_analyser.get_choice('choice.png')
+
