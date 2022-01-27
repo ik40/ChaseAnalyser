@@ -50,8 +50,8 @@ class ChaseAnalyser():
                 break
             else:
                 frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                if i%20 == 0:
-                    # cv2.imwrite(F"chck{i}.png", frame)
+                if i % 30 == 0:
+                    # cv2.imwrite(F"c{i}.png", frame)
                     # print(self.colour_checker(frames[585][305]))
                     # cv2.imwrite(F"frame{i}.png", frame)
                     # if self.colour_checker(frames[115][640]) == ChaseAnalyser.RED:
@@ -62,20 +62,19 @@ class ChaseAnalyser():
                     #             else:
                     #                 # cv2.imwrite(F"frame{i}.png", frame)
                     #                 repeater = i
-                    if x.strip(230, 1050, 534, frames):
-                        if i - repeater < 250:
+                    if x.strip(534, 230, 1050, frames):
+                        if i - repeater < 50:
                             continue
                         else:
-                            cv2.imwrite(F"questions{i}.png", frame)
-                            repeater = i
-                            # for x in range(425, 1005):
-                            #     if self.colour_checker(frames[650][x]) == ChaseAnalyser.RED:
-                            #         cv2.imwrite(F"framered{i}.png", frame)
+                            if x.area(640, 230, 1050, 25, frames):
+                                # print('green')
+                                cv2.imwrite(F"questions/green113{i}.png", frame)
+                                repeater = i
                 i += 1
         video.release()
         cv2.destroyAllWindows()
 
-    def strip(self, pixelx1, pixelx2, pixely, frame):
+    def strip(self, pixely, pixelx1, pixelx2, frame):
         count_blue = 1
         count_other = 1
         for x in range(pixelx1, pixelx2):
@@ -84,9 +83,26 @@ class ChaseAnalyser():
                 count_blue += 1
             else:
                 count_other += 1
-        if count_blue / count_other > 0.3:
+        if (count_blue / count_other) > 0.3:
             return True
 
+    def strip_green(self, pixely, pixelx1, pixelx2, frame):
+        # frame = cv2.imread(frame)
+        count_green = 1
+        for x in range(pixelx1, pixelx2):
+            col = self.colour_checker(frame[pixely][x])
+            # print(frame[pixely][x])
+            if col == ChaseAnalyser.GREEN:
+                count_green += 1
+        # print(count_green)
+        if count_green >= 50:
+            return True
+
+    def area(self, pixely1, pixelx1, pixelx2, offset, frame):
+        for y in range(pixely1, (pixely1+offset), 2):
+            strip1 = self.strip_green(y, pixelx1, pixelx2, frame)
+            if strip1:
+                return True
 
     def masking(self, img_path):
         # read in image
@@ -144,7 +160,7 @@ class ChaseAnalyser():
         # cv2.destroyAllWindows()
 
     def colour_checker(self, pixel):
-        if 51 <= pixel[0] <= 122 and 156 <= pixel[1] <= 233 and 0 <= pixel[2] <= 109:
+        if 0 <= pixel[0] <= 20 and 156 <= pixel[1] <= 233 and 0 <= pixel[2] <= 20:
             return ChaseAnalyser.GREEN
         # elif 139 <= pixel[0] <= 149 and 50 <= pixel[1] <= 80 and 50 <= pixel[2] <= 83:
         #     return ChaseAnalyser.RED
@@ -158,7 +174,7 @@ class ChaseAnalyser():
         #     return ChaseAnalyser.LBLUE
         elif 4 <= pixel[0] <= 28 and 160 <= pixel[1] <= 211 and 218 <= pixel[2] <= 250:
             return ChaseAnalyser.LBLUE
-        elif 2 <= pixel[0] <= 5 and 10 <= pixel[1] <= 15 and 58 <= pixel[2] <= 65:
+        elif 119 <= pixel[0] <= 170 and 120 <= pixel[1] <= 180 and 180 <= pixel[2] <= 245:
             return ChaseAnalyser.QBLUE
         else:
             return ChaseAnalyser.BLACK
@@ -386,6 +402,8 @@ class TestClass:
 if __name__ == "__main__":
     x = ChaseAnalyser()
     x.get_frames('S5E116.mp4')
+    # x.strip_green(650, 230, 1050, 'save49000.png')
+    # x.strip(534, 230, 1050, 'questions9760.png')
     # x.masking()
     # x.logic('masksc7.png')
     # x.inference(x.logic('masksc19.png'))
