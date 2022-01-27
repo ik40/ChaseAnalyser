@@ -44,37 +44,38 @@ class ChaseAnalyser():
         video = cv2.VideoCapture(stream)
         i = 0
         repeater = 0
+        last_frame = False
         while video.isOpened():
             ret, frame = video.read()
             if not ret:
                 break
             else:
                 frames = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                if i % 30 == 0:
-                    # cv2.imwrite(F"c{i}.png", frame)
-                    # print(self.colour_checker(frames[585][305]))
-                    # cv2.imwrite(F"frame{i}.png", frame)
-                    # if self.colour_checker(frames[115][640]) == ChaseAnalyser.RED:
-                    #     if self.colour_checker(frames[380][830]) == ChaseAnalyser.DBLUE:
-                    #         if self.colour_checker(frames[300][830]) == ChaseAnalyser.LBLUE:
-                    #             if i - repeater < 2000:
-                    #                 continue
-                    #             else:
-                    #                 # cv2.imwrite(F"frame{i}.png", frame)
-                    #                 repeater = i
-                    if x.strip(534, 230, 1050, frames):
-                        if i - repeater < 50:
+                if i % 30 == 0 and i >= 70000:
+                    # get question boxes (with no options) to use as signal to get previous question's last frame
+                    if x.strip_blue(590, 230, 1050, frames):
+                        if last_frame is not None:
+                            cv2.imwrite(F"{i}.png", last_frame)
                             continue
-                        else:
-                            if x.area(640, 230, 1050, 25, frames):
-                                # print('green')
-                                cv2.imwrite(F"questions/green113{i}.png", frame)
-                                repeater = i
+                    elif x.area(640, 230, 1050, 25, frames, ChaseAnalyser.GREEN):
+                        last_frame = frame
+                i+=1
+
+                    # get question boxes (with options)
+                    # if x.strip(534, 230, 1050, frames):
+                    #     if i - repeater < 50:
+                    #         continue
+                    #     else:
+                    # # get question boxes with a GREEN option
+                    #         if x.area(640, 230, 1050, 25, frames, ChaseAnalyser.GREEN):
+                    #             # print('green')
+                    #             cv2.imwrite(F"questions/green113{i}.png", frame)
+                    #             repeater = i
                 i += 1
         video.release()
         cv2.destroyAllWindows()
 
-    def strip(self, pixely, pixelx1, pixelx2, frame):
+    def strip_blue(self, pixely, pixelx1, pixelx2, frame):
         count_blue = 1
         count_other = 1
         for x in range(pixelx1, pixelx2):
@@ -98,9 +99,12 @@ class ChaseAnalyser():
         if count_green >= 50:
             return True
 
-    def area(self, pixely1, pixelx1, pixelx2, offset, frame):
+    def area(self, pixely1, pixelx1, pixelx2, offset, frame, colour):
         for y in range(pixely1, (pixely1+offset), 2):
-            strip1 = self.strip_green(y, pixelx1, pixelx2, frame)
+            if colour == ChaseAnalyser.GREEN:
+                strip1 = self.strip_green(y, pixelx1, pixelx2, frame)
+            else:
+                strip1 = self.strip_blue(y, pixelx1, pixelx2, frame)
             if strip1:
                 return True
 
@@ -137,9 +141,6 @@ class ChaseAnalyser():
         upper_white = np.array([172, 111, 255])
         mask_white = cv2.inRange(rgb_img, lower_white, upper_white)
         result_white = cv2.bitwise_not(rgb_img, rgb_img, mask=mask_white)
-        #
-        # cv2.imshow('result', result_white)
-        # cv2.waitKey(0)
 
         # read masks
         mask1 = result_blue
@@ -154,10 +155,6 @@ class ChaseAnalyser():
         # save results
         cv2.imwrite(F"mask{nm}.png", cv2.cvtColor(result, cv2.COLOR_RGB2BGR))
 
-        # show results
-        # cv2.imshow('result', cv2.cvtColor(result, cv2.COLOR_RGB2BGR))
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
 
     def colour_checker(self, pixel):
         if 0 <= pixel[0] <= 20 and 156 <= pixel[1] <= 233 and 0 <= pixel[2] <= 20:
@@ -202,8 +199,6 @@ class ChaseAnalyser():
     def inference(self, seq):
         temp = []
         final = []
-        chaser_right = ChaseAnalyser.Placeholder
-        contestant_right = ChaseAnalyser.Placeholder
         right_answer = ChaseAnalyser.Placeholder
 
         for i in seq:
@@ -401,15 +396,4 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('S5E116.mp4')
-    # x.strip_green(650, 230, 1050, 'save49000.png')
-    # x.strip(534, 230, 1050, 'questions9760.png')
-    # x.masking()
-    # x.logic('masksc7.png')
-    # x.inference(x.logic('masksc19.png'))
-    # test = TestClass()
-    # test.test('tests/test.txt')
-    # number_analyser = NumberAnalyser()
-    # number_analyser.numbers('frame8560.png')
-    # number_analyser.get_choice('choice.png')
-
+    x.get_frames('S5E115.mp4')
