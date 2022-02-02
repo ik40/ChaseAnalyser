@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 from itertools import islice
 from csv import reader
-# import pytesseract as pt
-
+import pytesseract as pt
+from numpy import array
 
 class ChaseAnalyser():
     GREEN = 'green'
@@ -28,8 +28,7 @@ class ChaseAnalyser():
     TopChoice = 'Top choice'
     MidChoice = 'Middle choice'
     LowChoice = 'Low choice'
-
-    frames_to_skip = 3
+    frames_to_skip = 2
 
     # download videos (high res)
     def download_videos(self):
@@ -48,7 +47,7 @@ class ChaseAnalyser():
         i = -1
         repeater = 0
         last_frame = None
-        all_money = False
+        all_money = None
         green_box = False
         # Loop through each frame in the video.
         while video.isOpened():
@@ -63,17 +62,21 @@ class ChaseAnalyser():
                 if i % self.frames_to_skip == 0:
 
                 # get options for the money
-                #     if x.strip_mboxgreen(375, 450, 830, frames, 70) or x.strip_mboxgreen(440, 450, 830, frames, 70) or x.strip_mboxgreen(490, 450, 830, frames, 70):
-                #         if all_money is not None:
-                #             cv2.imwrite(F"allmoney{i}.png", all_money)
-                #             continue
-                #     elif x.strip_lblue(305, 445, 830, frames) and x.strip_lblue(440, 445, 830, frames):
-                #         all_money = frame
-                    # elif x.strip_mboxgreen(375, 450, 830, frames, 40) or x.strip_mboxgreen(440, 450, 830, frames, 40) or x.strip_mboxgreen(490, 450, 830, frames, 40):
-                    #     all_money = frame
-                    #     if green_box is not None:
-                    #         cv2.imwrite(F"greenboxmoney{i}.png", green_box)
-                    #         continue
+                if x.strip_option_blue(375, 450, 830, frame_rgb) and x.strip_blue(440, 450, 830, frame_rgb) and x.strip_option_blue(490, 450, 830, frame_rgb, 70):
+                    if all_money is not None:
+
+                        cv2.imwrite(F"all_options{i}.png", all_money)
+                        y = NumberAnalyser()
+                        all_money = cv2.cvtColor(all_money, cv2.COLOR_BGR2RGB)
+                        options = y.numbers(all_money)
+                        print(i, options)
+                        all_money = None
+                        continue
+                elif x.strip_mboxgreen(375, 450, 830, frame_rgb, 70) or x.strip_mboxgreen(440, 450, 830,frame_rgb,70) or x.strip_mboxgreen(490, 450, 830, frame_rgb, 70):
+                    all_money = frame_bgr
+                    if green_box is not None:
+                         # cv2.imwrite(F"selected_option{i}.png", green_box)
+                        continue
 
                     # get question boxes (with no options) to use as signal to get previous question's last frame
                     if x.strip_blue(590, 230, 1050, frame_rgb):
@@ -119,9 +122,7 @@ class ChaseAnalyser():
                     #     if i - repeater < 50:
                     #         continue
                         # get question boxes with a GREEN option
-                        # We have verified that a question is on screen, now want to check if the green answer is present.
-
-
+                        # We have verified that a question is on screen, now want to check if the green answer is present
         video.release()
         cv2.destroyAllWindows()
 
@@ -140,7 +141,7 @@ class ChaseAnalyser():
             return True
         return False
 
-    def strip_lblue(self, pixely, pixelx1, pixelx2, frame):
+    def strip_option_blue(self, pixely, pixelx1, pixelx2, frame):
         count_blue = 1
         count_other = 1
         for x in range(pixelx1, pixelx2):
@@ -268,7 +269,7 @@ class ChaseAnalyser():
                 # Get the colour of the current pixel.
                 temp = self.colour_checker(item)
                 # If the colour is the same as the previous or black, then skip.
-                if temp == current or temp == ChaseAnalyser.BLACK:
+                if temp == current or temp == ChaseAnalyser.BLACK or temp == ChaseAnalyser.QBLUE or temp == ChaseAnalyser.OPTIONGREEN or temp == ChaseAnalyser.OPTIONBLUE:
                     continue
                 # Otherwise, if the colour is unique then add it to the sequence,
                 # as we only care about new colours marking a new box.
@@ -329,12 +330,7 @@ class NumberAnalyser:
         (T, threshInv) = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
         # visualize only the masked regions in the image
         masked = cv2.bitwise_not(gray, gray, mask=threshInv)
-        ret, thresh1 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-        ret, thresh2 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
-        ret, thresh3 = cv2.threshold(gray, 127, 255, cv2.THRESH_TRUNC)
-        ret, thresh4 = cv2.threshold(gray, 127, 255, cv2.THRESH_TOZERO)
-        ret, thresh5 = cv2.threshold(gray, 127, 255, cv2.THRESH_TOZERO_INV)
-        return thresh4
+        return threshInv
 
     # dilation
     def dilate(self, image):
@@ -373,33 +369,22 @@ class NumberAnalyser:
     def match_template(self, image, template):
         return cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
 
-    def numbers(self, img_path):
+    def numbers(self, img):
 
-        reader = cv2.imread(img_path)
         # reader = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_RGB2BGR)
         pt.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/4.1.3/bin/tesseract'
 
-        gray = self.get_grayscale(reader)
-        thresh = self.thresholding(reader)
-        opening = self.opening(reader)
-        canny = self.canny(reader)
-        noiseless = self.remove_noise(reader)
-
-        # cv2.imshow('canny', canny)
+        img = cv2.cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        msk = cv2.inRange(img, array([0, 0, 0]), array([179, 18, 255]))  # for high resolution
+        krn = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
+        dlt = cv2.dilate(msk, krn, iterations=1)
+        thr = 255 - cv2.bitwise_and(dlt, msk)
+        txt = pt.image_to_string(thr, config='--psm 11, -c tessedit_char_whitelist=$0123456789')
+        print(txt)
+        # cv2.imshow("", msk)
         # cv2.waitKey(0)
-        # cv2.imshow('gray', gray)
-        # cv2.waitKey(0)
-        # cv2.imshow('threshold', thresh)
-        # cv2.waitKey(0)
-        # cv2.imshow('opening', opening)
-        # cv2.waitKey(0)
-        # cv2.imshow('noise removal', noiseless)
-        # cv2.waitKey(0)
-        # cv2.imshow('og', reader)
-        # cv2.waitKey(0)
-
-        print('yes')
-        print(pt.image_to_string(reader, config='--psm 11, -c tessedit_char_whitelist=$,0123456789'))
+        # print('yes')
+        # print(pt.image_to_string(reader, config='--psm 11, -c tessedit_char_whitelist=$0123456789'))
 
     def get_choice(self, img):
         x = ChaseAnalyser
@@ -450,3 +435,6 @@ if __name__ == "__main__":
     x.get_frames('S5E115.mp4')
     # frame = cv2.imread('24870.png')
     # print(x.strip_green(640, 230, 1060, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 0.3))
+    y = NumberAnalyser()
+    img = cv2.imread('allmoney111810.png')
+    y.numbers(img)
