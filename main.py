@@ -7,6 +7,7 @@ from csv import reader
 import pytesseract as pt
 from numpy import array
 
+
 class ChaseAnalyser():
     GREEN = 'green'
     LBLUE = 'lightblue'
@@ -48,7 +49,7 @@ class ChaseAnalyser():
         repeater = 0
         last_frame = None
         all_money = None
-        green_box = False
+        green_box = None
         # Loop through each frame in the video.
         while video.isOpened():
             i += 1
@@ -118,7 +119,7 @@ class ChaseAnalyser():
                             #     last_frame = frame
 
                     # get question boxes (with options)
-                    # if x.strip_blue(534, 230, 1050, frames):
+                    # if x.strip_blue(534, 230, 1050, frames, 0.3):
                     #     if i - repeater < 50:
                     #         continue
                         # get question boxes with a GREEN option
@@ -141,7 +142,7 @@ class ChaseAnalyser():
             return True
         return False
 
-    def strip_option_blue(self, pixely, pixelx1, pixelx2, frame):
+    def strip_option_blue(self, pixely, pixelx1, pixelx2, frame, threshold):
         count_blue = 1
         count_other = 1
         for x in range(pixelx1, pixelx2):
@@ -369,17 +370,21 @@ class NumberAnalyser:
     def match_template(self, image, template):
         return cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
 
+    def crop(self, img):
+        return img[260:470, 440:830]
+
     def numbers(self, img):
 
         # reader = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_RGB2BGR)
         pt.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/4.1.3/bin/tesseract'
 
         img = cv2.cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        msk = cv2.inRange(img, array([0, 0, 0]), array([179, 18, 255]))  # for high resolution
+        img = self.crop(img)
+        msk = cv2.inRange(img, array([0, 0, 0]), array([179, 180, 255]))  # for high resolution
         krn = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
         dlt = cv2.dilate(msk, krn, iterations=1)
         thr = 255 - cv2.bitwise_and(dlt, msk)
-        txt = pt.image_to_string(thr, config='--psm 11, -c tessedit_char_whitelist=$0123456789')
+        txt = pt.image_to_string(thr, config='--psm 11, -c tessedit_char_whitelist=0123456789')
         print(txt)
         # cv2.imshow("", msk)
         # cv2.waitKey(0)
@@ -432,9 +437,9 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('S5E115.mp4')
+    x.get_frames('S5E116.mp4')
     # frame = cv2.imread('24870.png')
     # print(x.strip_green(640, 230, 1060, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 0.3))
     y = NumberAnalyser()
-    img = cv2.imread('allmoney111810.png')
-    y.numbers(img)
+    # img = cv2.imread('all_options24926.png')
+    # y.numbers(img)
