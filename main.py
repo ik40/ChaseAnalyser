@@ -45,11 +45,15 @@ class ChaseAnalyser():
     # get frames from the videos
     def get_frames(self, stream):
         video = cv2.VideoCapture(stream)
-        i = -1
+        i = 20000
         repeater = 0
         last_frame = None
         all_money = None
         green_box = None
+        state_0 = True
+        state_1 = False
+        state_2 = False
+        array = []
         # Loop through each frame in the video.
         while video.isOpened():
             i += 1
@@ -373,7 +377,7 @@ class NumberAnalyser:
         return img[260:470, 440:830]
 
     def numbers(self, img):
-
+        options = []
         # reader = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_RGB2BGR)
         pt.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/4.1.3/bin/tesseract'
 
@@ -384,7 +388,8 @@ class NumberAnalyser:
         dlt = cv2.dilate(msk, krn, iterations=1)
         thr = 255 - cv2.bitwise_and(dlt, msk)
         txt = pt.image_to_string(thr, config='--psm 11, -c tessedit_char_whitelist=0123456789')
-        print(txt)
+        options.append(txt)
+        return options
         # cv2.imshow("", msk)
         # cv2.waitKey(0)
         # print('yes')
@@ -435,8 +440,8 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('118.mp4')
-    # frame = cv2.imread('save55250.png')
+    x.get_frames('115.mp4')
+    # frame = cv2.imr ead('save55250.png')
     # print(x.check_green_options(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
     y = NumberAnalyser()
     # y.get_choice()
