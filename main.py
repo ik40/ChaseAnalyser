@@ -175,7 +175,6 @@ class ChaseAnalyser():
             # print(frame[pixely][x])
             if col == ChaseAnalyser.GREEN:
                 count_green += 1
-        # print(count_green)
         if count_green >= threshold:
             return True
 
@@ -393,20 +392,19 @@ class NumberAnalyser:
 
     def get_choice(self, img):
         x = ChaseAnalyser
-        check = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
-        mid1 = check[900][1120]
-        # print(mid1)
-        mid2 = check[900][1775]
-        top1 = check[900][1775]
-        top2 = check[900][1775]
-        low1 = check[900][1120]
-        low2 = check[900][1775]
-        if x.colour_checker(self, mid1) == ChaseAnalyser.GREEN or x.colour_checker(self, mid2) == ChaseAnalyser.GREEN:
-            return (ChaseAnalyser.MidChoice)
-        elif x.colour_checker(self, top1) == ChaseAnalyser.GREEN or x.colour_checker(self, top2) == ChaseAnalyser.GREEN:
-            return ChaseAnalyser.TopChoice
-        elif x.colour_checker(self, low1) == ChaseAnalyser.GREEN or x.colour_checker(self, low2) == ChaseAnalyser.GREEN:
+        check = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mid1 = check[375][450]
+        mid2 = check[375][830]
+        top1 = check[300][450]
+        top2 = check[300][830]
+        low1 = check[440][450]
+        low2 = check[440][830]
+        if x.colour_checker(mid1) == x.OPTIONGREEN:
+            return ChaseAnalyser.MidChoice
+        elif x.strip_mboxgreen(440, 450, 830, check, 70):
             return ChaseAnalyser.LowChoice
+        elif x.strip_mboxgreen(300, 450, 830, check, 70):
+            return  ChaseAnalyser.TopChoice
         else:
             print('OH NO')
 
@@ -437,9 +435,10 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('S5E116.mp4')
-    # frame = cv2.imread('24870.png')
-    # print(x.strip_green(640, 230, 1060, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 0.3))
+    x.get_frames('118.mp4')
+    # frame = cv2.imread('save55250.png')
+    # print(x.check_green_options(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
     y = NumberAnalyser()
+    # y.get_choice()
     # img = cv2.imread('all_options24926.png')
     # y.numbers(img)
