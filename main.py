@@ -182,7 +182,6 @@ class ChaseAnalyser():
         if count_green >= threshold:
             return True
 
-
     def area(self, pixely1, pixelx1, pixelx2, offset, frame, colour):
         for y in range(pixely1, (pixely1+offset), 2):
             if colour == ChaseAnalyser.GREEN or colour == ChaseAnalyser.GREEN:
@@ -244,9 +243,9 @@ class ChaseAnalyser():
             return ChaseAnalyser.GREEN
         elif 139 <= pixel[0] <= 256 and 0 <= pixel[1] <= 80 and 0 <= pixel[2] <= 83:
             return ChaseAnalyser.RED
-        elif 42 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
+        elif 30 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
             return ChaseAnalyser.DBLUE
-        elif 1 <= pixel[0] <= 32 and 71 <= pixel[1] <= 115 and 140 <= pixel[2] <= 256:
+        elif 1 <= pixel[0] <= 32 and 71 <= pixel[1] <= 130 and 140 <= pixel[2] <= 256:
             return ChaseAnalyser.LBLUE
         elif 90 <= pixel[0] <= 130 and 120 <= pixel[1] <= 150 and 180 <= pixel[2] <= 210:
             return ChaseAnalyser.QBLUE
@@ -256,11 +255,9 @@ class ChaseAnalyser():
     def logic(self, img_path):
         # analysis = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         analysis = img_path
-
         # Specify the Y coordinate of the line of pixels we wish to check.
         check = analysis[650]
         count = 0
-
         seq = []
         current = []
         x_start = 230
@@ -308,12 +305,10 @@ class ChaseAnalyser():
                 # Check if Chaser correctly guessed choice C.
                 elif seq[-1] == ChaseAnalyser.GREEN and seq[-2] == ChaseAnalyser.GREEN:
                     chaser_correct = True
-
         # If the length is 3 then it must be both chaser and contestant correct.
         # Green + Red + DBlue  || DBlue + Red + Green
         else:
             chaser_correct = True
-
         return contestant_correct, chaser_correct
 
 
@@ -440,10 +435,12 @@ class TestClass:
 
 if __name__ == "__main__":
     x = ChaseAnalyser()
-    x.get_frames('115.mp4')
-    # frame = cv2.imr ead('save55250.png')
+    x.get_frames('114.mp4')
+    frame = cv2.imread('imp_frames/questions42530.png')
+    print(x.inference(x.logic(frame)))
     # print(x.check_green_options(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
     y = NumberAnalyser()
     # y.get_choice()
     # img = cv2.imread('all_options24926.png')
     # y.numbers(img)
+
