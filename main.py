@@ -7,12 +7,14 @@ from csv import reader
 import pytesseract as pt
 from numpy import array
 
-
 class ChaseAnalyser():
     GREEN = 'green'
     LBLUE = 'lightblue'
     DBLUE = 'darkblue'
-    GREEN = 'moneyboxgreen'
+    GREEN = 'green'
+    OPTIONGREEN = 'money box green'
+    OPTIONBLUE = 'money box blue'
+    OPTIONBLUE2 = 'middle money box blue'
     RED = 'red'
     BLACK = 'black'
     QBLUE = 'question blue'
@@ -45,7 +47,7 @@ class ChaseAnalyser():
     # get frames from the videos
     def get_frames(self, stream):
         video = cv2.VideoCapture(stream)
-        i = 20000
+        i = 0
         repeater = 0
         last_frame = None
         all_money = None
@@ -61,75 +63,118 @@ class ChaseAnalyser():
             if not ret:
                 break
             else:
-                # Convert the frame into RGB colour format.
+                # # Convert the frame into RGB colour format.
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-                # Skip some frames for efficiency.
+                # # Skip some frames for efficiency.
                 if i % self.frames_to_skip == 0:
 
-                # get options for the money
-                if x.strip_option_blue(375, 450, 830, frame_rgb) and x.strip_blue(440, 450, 830, frame_rgb) and x.strip_option_blue(490, 450, 830, frame_rgb, 70):
-                    if all_money is not None:
+                    if state_0:
+                        # get options for the money
+                        if not self.check_blue_options(frame_rgb):
+                            if all_money is not None:
+                                repeater += 1
+                                cv2.imwrite(F"imp_frames/money{i}.png", all_money)
+                                options = cv2.cvtColor(all_money, cv2.COLOR_BGR2RGB)
+                                y = NumberAnalyser()
+                                y.numbers(options)
+                                all_money = None
+                                state_1 = True
+                                state_0 = False
+                                continue
+                        elif self.check_blue_options(frame_rgb):
+                            all_money = frame_bgr
 
-                        cv2.imwrite(F"all_options{i}.png", all_money)
-                        y = NumberAnalyser()
-                        all_money = cv2.cvtColor(all_money, cv2.COLOR_BGR2RGB)
-                        options = y.numbers(all_money)
-                        print(i, options)
-                        all_money = None
-                        continue
-                elif x.strip_mboxgreen(375, 450, 830, frame_rgb, 70) or x.strip_mboxgreen(440, 450, 830,frame_rgb,70) or x.strip_mboxgreen(490, 450, 830, frame_rgb, 70):
-                    all_money = frame_bgr
-                    if green_box is not None:
-                         # cv2.imwrite(F"selected_option{i}.png", green_box)
-                        continue
 
-                    # get question boxes (with no options) to use as signal to get previous question's last frame
-                    if x.strip_blue(590, 230, 1050, frame_rgb):
-                        # Skip if there is no previously saved frame to analyse.
-                        if last_frame is None:
-                            continue
+                    # get option chosen by contestant
+                    if state_1:
+                        print('no')
+                        if not self.check_green_options(frame_rgb):
+                            if green_box is not None:
+                                state_1 = False
+                                state_2 = True
+                                # cv2.imwrite(F"imp_frames/{i}.png", green_box)
+                                options = cv2.cvtColor(green_box, cv2.COLOR_BGR2RGB)
+                                if 1 <= repeater <= 10:
+                                    if self.strip_mboxgreen(375, 450, 830, options, 70):
+                                        array = [5, 8]
+                                        print(ChaseAnalyser.MidChoice)
+                                    elif self.strip_mboxgreen(440, 450, 830, options, 70):
+                                        array = [4, 8]
+                                        print(ChaseAnalyser.LowChoice)
+                                    elif self.strip_mboxgreen(300, 450, 830, options, 70):
+                                        array = [6, 8]
+                                        print(ChaseAnalyser.TopChoice)
+                                    else:
+                                        print('OH NO')
+                                green_box = None
+                                repeater = 0
+                                continue
+                        elif self.check_green_options(frame_rgb):
+                            green_box = frame_bgr
+                    state_1 = False
+                    state_2 = True
 
-                        # We have the final frame from the last question, where all of the choices should be present.
-
-                        # Write the frame to file for debugging/later use (still in BGR as imwrite requires).
-                        cv2.imwrite(F"pipeline/{i}.png", last_frame)
-
-                        # Convert the frame to RGB to analyse.
-                        last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB)
-
-                        # Finds the sequence of colours corresponding to the given answers from Chaser and Contestant.
-                        answer_sequence = x.logic(last_frame)
-                        # Takes the colour sequence and infers whether the Chaser & Contestant were right or wrong.
-                        contestant_correct, chaser_correct = x.inference(answer_sequence)
-                        print('frame ' + str(i))
-                        print(f'Chaser was correct is {chaser_correct}\nContestant is correct is {contestant_correct}')
-
-                        # Reset to find the next question.
-                        last_frame = None
-                        continue # need to update i or counter or smth
-
-                    # Checks for a question box which has the three options also present.
-                    if x.strip_blue(534, 230, 1050, frame_rgb):
-                        # Checks that the answer has been given -> green box present.
-                        if x.strip_green(640, 230, 1050, frame_rgb, 0.3):
-                            print('answer found')
+                    if state_2:
+                        # get question boxes (with no options) to use as signal to get previous question's last frame
+                        if x.strip_green(650, 230, 1050, frame_rgb, 20):
                             last_frame = frame_bgr
-                            # We have found a frame with a question with the green answer box.
-                            # Save the current frame for debugging/later use.
-                            cv2.imwrite(F"green/{i}.png", frame_bgr)
+                        elif x.strip_blue(590, 230, 1050, frame_rgb):
+                            if last_frame is not None:
+                                cv2.imwrite(F"imp_frames/questions{i}.png", last_frame)
+                                # Convert the frame to RGB to analyse.
+                                last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB)
+                                # Finds the sequence of colours corresponding to the given answers from Chaser and Contestant.
+                                answer_sequence = x.logic(last_frame)
+                                # Takes the colour sequence and infers whether the Chaser & Contestant were right or wrong.
+                                contestant_correct, chaser_correct = x.inference(answer_sequence)
+                                if chaser_correct:
+                                    array[1] -= 1
+                                if contestant_correct:
+                                    array[0] -= 1
+                                print(array)
+                                if array[0] == 0 and array[1] != 0:
+                                    print('Contestant wins')
+                                elif array[0] == array[1]:
+                                    print('Chaser catches contestant')
+                                print('frame ' + str(i))
+                                print(f'Chaser was correct is {chaser_correct}\nContestant is correct is {contestant_correct}')
+                                # Reset to find the next question.
+                                last_frame = None
+                                continue
+                    state_2 = False
+                    state_0 = True
 
-                            repeater = i
-                            # elif x.area(640, 230, 1050, 25, frames, ChaseAnalyser.GREEN):
-                            #     last_frame = frame
-
-                    # get question boxes (with options)
-                    # if x.strip_blue(534, 230, 1050, frames, 0.3):
-                    #     if i - repeater < 50:
-                    #         continue
-                        # get question boxes with a GREEN option
-                        # We have verified that a question is on screen, now want to check if the green answer is present
         video.release()
         cv2.destroyAllWindows()
+
+    def check_blue_options(self, frame_rgb):
+        if x.strip_option_blue(300, 450, 830, frame_rgb, 0.3) and x.strip_option_blue(440, 450, 830, frame_rgb, 0.3) and x.strip_option_blue_middle(375, 450, 830, frame_rgb, 0.3):
+            return True
+
+    def check_green_options(self, frame_rgb):
+        op1 = x.strip_mboxgreen(300, 450, 830, frame_rgb, 70)
+        op2 = x.strip_mboxgreen(440, 450, 830, frame_rgb, 70)
+        op3 = x.strip_mboxgreen(375, 450, 830,frame_rgb, 70)
+        if op1:
+            if x.black_strip(440, 450, 830, frame_rgb, 70) and x.black_strip(375, 450, 830, frame_rgb, 70):
+                return True
+        elif op2:
+            if x.black_strip(300, 450, 830, frame_rgb, 70) and x.black_strip(375, 450, 830, frame_rgb, 70):
+                return True
+        elif op3:
+            if x.black_strip(440, 450, 830, frame_rgb, 70) and x.black_strip(300, 450, 830, frame_rgb, 70):
+                return True
+
+    def black_strip(self, pixely, pixelx1, pixelx2, frame, threshold):
+        count_black = 1
+        for x in range(pixelx1, pixelx2):
+            col = self.colour_checker(frame[pixely][x])
+            # print(frame[pixely][x])
+            if col == ChaseAnalyser.BLACK:
+                count_black += 1
+        # print(count_green)
+        if count_black >= threshold:
+            return True
 
     # Checks if a frame contains a question box with the three options. Returns True if so. False otherwise.
     # Question box with options can only be in one place when options are present, this position is paramaterised.
@@ -144,18 +189,29 @@ class ChaseAnalyser():
                 count_other += 1
         if (count_blue / count_other) > 0.3:
             return True
-        return False
 
     def strip_option_blue(self, pixely, pixelx1, pixelx2, frame, threshold):
         count_blue = 1
         count_other = 1
         for x in range(pixelx1, pixelx2):
             col = self.colour_checker(frame[pixely][x])
-            if col == ChaseAnalyser.LBLUE:
+            if col == ChaseAnalyser.OPTIONBLUE:
                 count_blue += 1
             else:
                 count_other += 1
-        if (count_blue / count_other) > 0.2:
+        if (count_blue / count_other) > threshold:
+            return True
+
+    def strip_option_blue_middle(self, pixely, pixelx1, pixelx2, frame, threshold):
+        count_blue = 1
+        count_other = 1
+        for x in range(pixelx1, pixelx2):
+            col = self.colour_checker(frame[pixely][x])
+            if col == ChaseAnalyser.OPTIONBLUE2:
+                count_blue += 1
+            else:
+                count_other += 1
+        if (count_blue / count_other) > threshold:
             return True
 
     def strip_green(self, pixely, pixelx1, pixelx2, frame, threshold):
@@ -169,7 +225,6 @@ class ChaseAnalyser():
         # print(count_green)
         if count_green >= threshold:
             return True
-        return False
 
     def strip_mboxgreen(self, pixely, pixelx1, pixelx2, frame, threshold):
         # frame = cv2.imread(frame)
@@ -177,7 +232,7 @@ class ChaseAnalyser():
         for x in range(pixelx1, pixelx2):
             col = self.colour_checker(frame[pixely][x])
             # print(frame[pixely][x])
-            if col == ChaseAnalyser.GREEN:
+            if col == ChaseAnalyser.OPTIONGREEN:
                 count_green += 1
         if count_green >= threshold:
             return True
@@ -239,16 +294,22 @@ class ChaseAnalyser():
         cv2.imwrite(F"mask{img_path}.png", cv2.cvtColor(result, cv2.COLOR_RGB2BGR))
 
     def colour_checker(self, pixel):
-        if 0 <= pixel[0] <= 50 and 100 <= pixel[1] <= 233 and 0 <= pixel[2] <= 20:
+        if 0 <= pixel[0] <= 20 and 150 <= pixel[1] <= 233 and 0 <= pixel[2] <= 20:
             return ChaseAnalyser.GREEN
         elif 139 <= pixel[0] <= 256 and 0 <= pixel[1] <= 80 and 0 <= pixel[2] <= 83:
             return ChaseAnalyser.RED
         elif 30 <= pixel[0] <= 70 and 75 <= pixel[1] <= 112 and 105 <= pixel[2] <= 132:
             return ChaseAnalyser.DBLUE
-        elif 1 <= pixel[0] <= 32 and 71 <= pixel[1] <= 130 and 140 <= pixel[2] <= 256:
+        elif 1 <= pixel[0] <= 32 and 71 <= pixel[1] <= 140 and 140 <= pixel[2] <= 256:
             return ChaseAnalyser.LBLUE
-        elif 90 <= pixel[0] <= 130 and 120 <= pixel[1] <= 150 and 180 <= pixel[2] <= 210:
+        elif 120 <= pixel[0] <= 160 and 130 <= pixel[1] <= 170 and 180 <= pixel[2] <= 220:
             return ChaseAnalyser.QBLUE
+        elif 30 <= pixel[0] <= 80 and 150 <= pixel[1] <= 240 and 0 <= pixel[2] <= 20:
+            return ChaseAnalyser.OPTIONGREEN
+        elif 0 <= pixel[0] <= 30 and 100 <= pixel[1] <= 200 and 190 <= pixel[2] <= 256:
+            return ChaseAnalyser.OPTIONBLUE
+        elif 0 <= pixel[0] <= 10 and 0 <= pixel[1] <= 10 and 100 <= pixel[2] <= 256:
+            return ChaseAnalyser.OPTIONBLUE2
         else:
             return ChaseAnalyser.BLACK
 
@@ -303,7 +364,7 @@ class ChaseAnalyser():
                 if seq[0] == ChaseAnalyser.GREEN and seq[1] == ChaseAnalyser.RED:
                     chaser_correct = True
                 # Check if Chaser correctly guessed choice C.
-                elif seq[-1] == ChaseAnalyser.GREEN and seq[-2] == ChaseAnalyser.GREEN:
+                elif seq[-1] == ChaseAnalyser.GREEN and seq[-2] == ChaseAnalyser.RED:
                     chaser_correct = True
         # If the length is 3 then it must be both chaser and contestant correct.
         # Green + Red + DBlue  || DBlue + Red + Green
@@ -383,6 +444,7 @@ class NumberAnalyser:
         dlt = cv2.dilate(msk, krn, iterations=1)
         thr = 255 - cv2.bitwise_and(dlt, msk)
         txt = pt.image_to_string(thr, config='--psm 11, -c tessedit_char_whitelist=0123456789')
+        print(txt)
         options.append(txt)
         return options
         # cv2.imshow("", msk)
@@ -436,7 +498,7 @@ class TestClass:
 if __name__ == "__main__":
     x = ChaseAnalyser()
     x.get_frames('114.mp4')
-    frame = cv2.imread('imp_frames/questions42530.png')
+    frame = cv2.cvtColor(cv2.imread('imp_frames/questions31042.png'), cv2.COLOR_BGR2RGB)
     print(x.inference(x.logic(frame)))
     # print(x.check_green_options(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
     y = NumberAnalyser()
