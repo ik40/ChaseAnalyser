@@ -1,21 +1,33 @@
-episode,contestant,screenshot,answers
-ep1,c1,masksc.png,"['green', 'red', 'darkblue', 'darkblue']"
-ep1,c1,masksc1.png,"['darkblue', 'red', 'green', 'red', 'darkblue']"
-ep1,c1,masksc2.png,"['darkblue', 'darkblue', 'red', 'green']"
-ep1,c1,masksc3.png,"['green', 'red', 'darkblue', 'darkblue']"
-ep1,c2,masksc4.png,"['darkblue', 'darkblue', 'green']"
-ep1,c2,masksc5.png,"['green', 'red', 'darkblue' , 'darkblue']"
-ep1,c2,masksc6.png,"['darkblue', 'red', 'green', 'red', 'lightblue']"
-ep1,c2,masksc7.png,"['darkblue', 'darkblue', 'red' , 'green']"
-ep1,c2,masksc8.png,"['darkblue', 'red', 'green', 'red', 'darkblue']"
-ep1,c2,masksc9.png,"['darkblue', 'red', 'darkblue', 'green']"
-ep1,c2,masksc10.png,"['darkblue', 'darkblue', 'green']"
-ep1,c3,masksc11.png,"['green', 'red', 'lightblue', 'darkblue']"
-ep1,c3,masksc12.png,"['green', 'red', 'darkblue', 'lightblue']"
-ep1,c3,masksc13.png,"['darkblue', 'lightblue', 'red', 'green']"
-ep1,c4,masksc14.png,"['green', 'red', 'darkblue', 'lightblue']"
-ep1,c4,masksc15.png,"['darkblue', 'red', 'green', 'red', 'darkblue']"
-ep1,c4,masksc16.png,"['darkblue', 'darkblue', 'red', 'green']"
-ep1,c4,masksc17.png,"['green', 'lightblue', 'red', 'darkblue']"
-ep1,c4,masksc18.png,"['darkblue', 'red', 'green', 'red', 'lightblue']"
-ep1,c4,masksc19.png,"['green', 'red', 'lightblue', 'darkblue']"
+ep1, c1, sc.png, ['green', 'red', 'darkblue', 'darkblue']
+ep1, c1, sc1.png, ['darkblue, 'red', 'green', 'red', 'darkblue' ]
+ep1, c1, sc2.png, ['darkblue', 'darkblue', 'red', 'green']
+ep1, c1, sc3.png, ['green', 'red', 'darkblue', 'darkblue']
+ep1, c2, sc4.png, ['darkblue', 'darkblue', 'green']
+ep1, c2, sc5.png, ['green', 'red', 'darkblue', 'darkblue']
+ep1, c2, sc6.png, ['darkblue', 'red', 'green', 'red', 'lightblue']
+ep1, c2, sc7.png, ['darkblue', 'darkblue', 'red', 'green']
+ep1, c2, sc8.png, ['darkblue', 'red', 'green', 'red', 'darkblue']
+ep1, c2, sc9.png, ['red', 'darkblue', 'darkblue', 'green']
+ep1, c2, sc10.png, ['darkblue', 'darkblue', 'green']
+ep1, c3, sc11.png, ['green', 'red', 'lightblue', 'darkblue']
+ep1, c3, sc12.png, ['green', 'red', 'darkblue', 'lightblue']
+ep1, c3, sc13.png, ['darkblue, 'lightblue', 'red', 'green']
+ep1, c4, sc14.png, ['green', 'red', 'darkblue', 'lightblue']
+ep1, c4, sc15.png, ['darkblue', 'red', 'green', 'red', 'darkblue']
+ep1, c4, sc16.png, ['darkblue', 'darkblue', 'red', 'green']
+ep1, c4, sc17.png, ['green', 'lightblue', 'red', 'darkblue']
+ep1, c4, sc18.png, ['darkblue', 'red', 'green', 'red', 'lightblue']
+ep1, c4, sc19.png, ['green', 'red', 'lightblue', 'darkblue']
+ep2, 
+
+
+if onlybox
+    write last frame
+    clear last frame
+    // this is where the frame should have red
+    logic()
+    inference()
+    continue    
+if optionbox
+    if green box
+        save to last frame

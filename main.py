@@ -43,13 +43,17 @@ class ChaseAnalyser():
 
     # download videos (high res)
     def download_videos(self):
-        with open(sys.argv[1]) as f:
+        with open(sys.argv[2]) as f:
             lines = f.readlines()
         for url in lines:
             yt = YouTube(url)
             streams = yt.streams.filter(progressive=True)
             itag = streams[-1].itag
             stream = yt.streams.get_by_itag(itag)
+            f = open("videos.txt", "a")
+            print(stream.title)
+            f.write(yt.streams[0].title + '.mp4,')
+            f.close()
             stream.download()
 
     # get frames from the videos
@@ -79,7 +83,7 @@ class ChaseAnalyser():
 
                 # Write contestant data to csv
                 if write_data:
-                    f = open("information.txt", "a")
+                    f = open("demoinfo.txt", "a")
                     if current_log != []:
                         for data in current_log:
                             f.write(data)
@@ -583,27 +587,20 @@ class TestClass:
 
 
 if __name__ == "__main__":
-
-
     x = ChaseAnalyser()
-    # x.download_videos()
-    x.get_frames('134.mp4')
-    # x.get_frames('142.mp4')
-    # x.get_frames('143.mp4')
-    # x.get_frames('143.mp4')
-    # x.get_frames('144.mp4')
-    # x.get_frames('145.mp4')
-    # x.get_frames('146.mp4')
-    # x.get_frames('147.mp4')
+    if sys.argv[1] == 'download':
+        x.download_videos()
+    elif sys.argv[1] == 'analyse':
+        with open(sys.argv[2]) as f:
+            data = f.read()
+            currentline = data.split(",")
+            for i in currentline:
+                print(i)
+                x.get_frames(i)
     # x.get_frames('148.mp4')
-    # x.get_frames('149.mp4')
-    # x.get_frames('150.mp4')
-    # x.get_frames('151.mp4')
-    # x.get_frames('152.mp4')
-    # x.get_frames('153.mp4')
-    # x.get_frames('154.mp4')
-    # x.get_frames('155.mp4')
-    y = NumberAnalyser()
+    # y = NumberAnalyser()
+    # reader=cv2.cvtColor(cv2.imread('offer.png'), cv2.COLOR_RGB2BGR)
+    # y.numbers(reader)
 
 
 
